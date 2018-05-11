@@ -2,8 +2,6 @@
 
 License: GPLv3
 
-IMPORTANT: This is beta-quality, has received some testing, but needs more.
-
 This is a PHP library that you can use to integrate with the [EWWW Image Optimizer API](https://ewww.io/). The API can be used to reduce image filesize using lossless and lossy methods as well as image format conversion.
 
 By default, EWWW Image Optimizer uses lossy JPG and lossless PNG optimization techniques, The lossy optimization for JPG and PNG files uses sophisticated algorithms to minimize perceptual quality loss, which is vastly different than setting a static quality/compression level.
@@ -18,7 +16,10 @@ Include the library, and start rolling:
 ```php
 include_once( 'ewwwio-php/ewwwio.php' );
 $ewwwio = new EWWWIO( 'abc123' ); // API key is required at instantiation.
-$ewwwio->optimize( '/var/www/images/sample.jpg' );
+$result = $ewwwio->optimize( '/var/www/images/sample.jpg' );
+if ( ! $result ) { // find out what the problem was...
+    echo $ewwwio->get_error() . "\n";
+}
 ```
 
 You can also verify your key like so:
@@ -46,6 +47,9 @@ Not yet, but maybe in the future. [The WordPress plugin can though](https://ewww
 
 
 ## Changelog
+
+### 1.0
+* fixed conversion bugs, fully tested and marking stable
 
 ### 0.90
 * initial release, may eat your cat

@@ -14,7 +14,7 @@ if ( ! defined( 'EWWWIO_PATH' ) ) {
 	define( 'EWWWIO_PATH', dirname( __file__ ) . '/' );
 }
 
-define( 'EWWW_IMAGE_OPTIMIZER_VERSION', '0.9' );
+define( 'EWWW_IMAGE_OPTIMIZER_VERSION', '1.0' );
 
 require_once( EWWWIO_PATH . 'vendor/Requests/library/Requests.php' );
 Requests::register_autoloader();
@@ -304,6 +304,39 @@ class EWWWIO {
 	}
 
 	/**
+	 * Generate a unique filename for a converted image.
+	 *
+	 * @param string $file The filename to test for uniqueness.
+	 * @param string $fileext An iterator to append to the base filename, starts empty usually.
+	 * @return array {
+	 *     Filename information.
+	 *
+	 *     @type string A unique filename for converting an image.
+	 *     @type int|string The iterator used for uniqueness.
+	 * }
+	 */
+	function unique_filename( $file, $fileext ) {
+		// Strip the file extension.
+		$filename = preg_replace( '/\.\w+$/', '', $file );
+		if ( ! is_file( $filename . $fileext ) ) {
+			return array( $filename . $fileext, '' );
+		}
+		// Set the increment to 1 for starters.
+		$filenum = 1;
+		// But it must be only letters, numbers, or underscores.
+		$filenum = ( preg_match( '/^[\w\d]*$/', $filenum ) ? $filenum : 1 );
+		$suffix  = ( ! empty( $filenum ) ? '-' . $filenum : '' );
+		// While a file exists with the current increment.
+		while ( file_exists( $filename . $suffix . $fileext ) ) {
+			// Increment the increment...
+			$filenum++;
+			$suffix = '-' . $filenum;
+		}
+		// All done, let's reconstruct the filename.
+		return array( $filename . $suffix . $fileext, $filenum );
+	}
+
+	/**
 	 * Process an image.
 	 *
 	 * @param string $file Full absolute path to the image file.
@@ -388,13 +421,12 @@ class EWWWIO {
 					$pngfile = '';
 				}
 				if ( $this->jpg_level ) {
-					list( $file, $converted, $result, $new_size ) = $this->cloud_optimizer( $file, $type, $convert, $pngfile, 'image/png' );
-					if ( $converted ) {
+					list( $file, $result, $new_size ) = $this->cloud_optimizer( $file, $type, $convert, $pngfile, 'image/png' );
+					if ( $this->converted ) {
 						if ( $this->delete_originals ) {
 							// delete the original JPG
 							unlink( $original );
 						}
-						$this->converted = true;
 						$this->webp_create( $file, $new_size, 'image/png' );
 					} else {
 						$this->webp_create( $file, $new_size, $type );
@@ -415,13 +447,12 @@ class EWWWIO {
 					$jpgfile = '';
 				}
 				if ( $this->png_level ) {
-					list( $file, $converted, $result, $new_size ) = $this->cloud_optimizer( $file, $type, $convert, $jpgfile, 'image/jpeg', $this->jpg_background, $this->$jpg_quality );
-					if ( $converted ) {
+					list( $file, $result, $new_size ) = $this->cloud_optimizer( $file, $type, $convert, $jpgfile, 'image/jpeg', $this->jpg_background, $this->jpg_quality );
+					if ( $this->converted ) {
 						if ( $this->delete_originals ) {
 							// delete the original JPG
 							unlink( $original );
 						}
-						$this->converted = true;
 						$this->webp_create( $file, $new_size, 'image/jpeg');
 					} else {
 						$this->webp_create( $file, $new_size, $type );
@@ -441,17 +472,14 @@ class EWWWIO {
 					$pngfile = '';
 				}
 				if ( $this->gif_level ) {
-					list( $file, $converted, $result, $new_size ) = $this->cloud_optimizer( $file, $type, $convert, $pngfile, 'image/png' );
-					if ( $converted ) {
+					list( $file, $result, $new_size ) = $this->cloud_optimizer( $file, $type, $convert, $pngfile, 'image/png' );
+					if ( $this->converted ) {
 						if ( $this->delete_originals ) {
 							// delete the original JPG
 							unlink( $original );
 						}
-						$this->converted = true;
 						$this->webp_create( $file, $new_size, 'image/png' );
 					}
-				} else {
-					$this->webp_create( $file, $new_size, $type );
 				}
 				break;
 			case 'application/pdf':
@@ -734,7 +762,6 @@ class EWWWIO {
 			file_put_contents( $tempfile, $response->body );
 			$orig_size = filesize( $file );
 			$newsize = $orig_size;
-			$converted = false;
 			$msg = '';
 			if ( 100 > strlen( $response->body ) && strpos( $response->body, 'invalid' ) ) {
 				$this->debug_message( 'License invalid' );
@@ -761,7 +788,7 @@ class EWWWIO {
 			} else {
 				unlink( $tempfile );
 			}
-			return array( $file, $converted, $msg, $newsize );
+			return array( $file, $msg, $newsize );
 		}
 	}
 }
