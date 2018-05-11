@@ -29,27 +29,27 @@ class EWWWIO {
 	public $pdf_level = 10; // Defaults to lossless, 20 is lossy
 	public $backup = false; // You must collect and store the backup_hash attribute after optimization to retrieve the files later, or access them via https://history.exactlywww.com
 	public $backup_domain = ''; // set this to have backups stored on our server in unique folders per-website
-	public $webp = false;
-	public $webp_force = false;
-	public $webp_quality = false;
+	public $webp = false; // Enable creation of a .webp image alongside the optimized image, only if smaller.
+	public $webp_force = false; // Force keeping .webp images even if they are bigger.
+	public $webp_quality = false; // Defaults to 82.
 
 	// conversion options
-	public $jpg_to_png = false;
-	public $png_to_jpg = false;
-	public $gif_to_png = false;
-	public $delete_originals = true; // only for conversion, regular optimization is done in-place.
+	public $jpg_to_png = false; // Enable JPG to PNG conversion, PNG image saved only if smaller.
+	public $png_to_jpg = false; // Enable PNG to JPG conversion, JPG image saved only if smaller.
+	public $gif_to_png = false; // Enable GIF to PNG conversion, PNG image saved only if smaller.
+	public $delete_originals = true; // Deletes the original image after successful, does not apply unless conversion options are enabled, as regular optimization is done in-place.
 	public $jpg_background = ''; // Set to something like #ffffff (with # symbol) for a white fill during PNG to JPG. If left empty, no conversion will be attempted on transparent PNG images.
 	public $jpg_quality = 82; // only for conversion, not for regular compression/optimization.
 
 	// status and results - look but don't touch (modify)
-	public $converted = false;
-	public $savings = 0;
-	public $backup_hash = '';
-	public $debug = false;
-	public $debug_log = '';
+	public $converted = false; // If you enable conversion options (see above), this will indicate a successful conversion after running optimize();
+	public $savings = 0; // This will store the bytes saved during optimization.
+	public $backup_hash = ''; // A unique string for the image file last optimized, store this somewhere if you want to be able to retrieve the original later.
+	public $debug = false; // Enables logging to debug.log file in lib folder.
+	protected $debug_log = ''; // The current debugging contents.
 	protected $last_error = ''; // use get_error() to inspect.
-	protected $api_key = '';
-	protected $exceeded = false;
+	protected $api_key = ''; // Pass to constructor to define.
+	protected $exceeded = false; // You've run out of credits, go get some more :)
 
 	function __construct( $api_key = '' ) {
 		if ( empty( $api_key ) ) {
@@ -88,7 +88,7 @@ class EWWWIO {
 			$this->debug_log = str_replace( '<br>', "\n", $this->debug_log );
 			file_put_contents( EWWWIO_PATH . 'debug.log', $timestamp . $this->debug_log, FILE_APPEND );
 		}
-		$ewww_debug = '';
+		$this->debug_log = '';
 	}
 
 	/**
