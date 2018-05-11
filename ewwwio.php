@@ -22,11 +22,11 @@ Requests::register_autoloader();
 class EWWWIO {
 
 	// primary options
-	public $remove_meta = true;
-	public $jpg_level = 30;
-	public $png_level = 20;
-	public $gif_level = 10;
-	public $pdf_level = 10;
+	public $remove_meta = true; // Removes metadata like EXIF and ICC information.
+	public $jpg_level = 20; // Defaults to regular lossy, 10 is lossless, 30 is highest compression.
+	public $png_level = 10; // Defaults to lossless, 20 is lossy, 30 is highest compression.
+	public $gif_level = 10; // Lossless only, set to zero to disable.
+	public $pdf_level = 10; // Defaults to lossless, 20 is lossy
 	public $backup = false; // You must collect and store the backup_hash attribute after optimization to retrieve the files later, or access them via https://history.exactlywww.com
 	public $backup_domain = ''; // set this to have backups stored on our server in unique folders per-website
 	public $webp = false;
@@ -638,14 +638,14 @@ class EWWWIO {
 			$convert = 1;
 		}
 		$lossy_fast = 0;
-		if ( $type == 'image/png' && $this->png_level >= 40 ) {
+		if ( $type == 'image/png' && $this->png_level >= 20 ) {
 			$lossy = 1;
-			if ( $this->png_level == 40 ) {
+			if ( $this->png_level == 20 ) {
 				$lossy_fast = 1;
 			}
-		} elseif ( $type == 'image/jpeg' && $this->jpg_level >= 30 ) {
+		} elseif ( $type == 'image/jpeg' && $this->jpg_level >= 20 ) {
 			$lossy = 1;
-			if ( $this->jpg_level == 30 ) {
+			if ( $this->jpg_level == 20 ) {
 				$lossy_fast = 1;
 			}
 		} elseif ( $type == 'application/pdf' && $this->pdf_level == 20 ) {

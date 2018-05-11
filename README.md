@@ -33,7 +33,7 @@ if ( $ewwwio->verify_key() ) {
 Options are set as properties/attributes, and you can inspect the available API options in ewwwio.php:
 ```php
 $ewwwio->debug = true; // enables logging to debug.log
-$ewwwio->jpg_level = 40; // Maximum compression, 30 = regular lossy, and 20 = lossless
+$ewwwio->jpg_level = 30; // Maximum compression, 20 = regular lossy, and 10 = lossless
 $ewwwio->webp = true; // Generates a .webp image alongside the optimized image if WebP is smaller.
 $ewwwio->webp_force = true; // Always keep the generated WebP, even if it is a little bigger.
 ```
