@@ -3,55 +3,53 @@
  * PHP Library to interact with EWWW IO API.
  */
 
-if ( ! function_exists( 'boolval' ) ) {
-	function boolval( $value ) {
-		return (bool) $value;
-	}
-}
-
 if ( ! defined( 'EWWWIO_PATH' ) ) {
 	// this is the full system path to the plugin folder
-	define( 'EWWWIO_PATH', dirname( __file__ ) . '/' );
+	define( 'EWWWIO_PATH', __DIR__ . '/' );
 }
 
-define( 'EWWW_IMAGE_OPTIMIZER_VERSION', '1.0' );
+define( 'EWWW_IMAGE_OPTIMIZER_VERSION', 1.1 );
 
-require_once( EWWWIO_PATH . 'vendor/Requests/library/Requests.php' );
+// TODO: Update the Requests lib  to 2.0
+require_once EWWWIO_PATH . 'vendor/Requests/library/Requests.php';
 Requests::register_autoloader();
 
 class EWWWIO {
 
 	// primary options
 	public $remove_meta = true; // Removes metadata like EXIF and ICC information.
-	public $jpg_level = 20; // Defaults to regular lossy, 10 is lossless, 30 is highest compression.
-	public $png_level = 10; // Defaults to lossless, 20 is lossy, 30 is highest compression.
-	public $gif_level = 10; // Lossless only, set to zero to disable.
-	public $pdf_level = 10; // Defaults to lossless, 20 is lossy
-	public $backup = false; // You must collect and store the backup_hash attribute after optimization to retrieve the files later, or access them via https://history.exactlywww.com
-	public $backup_domain = ''; // set this to have backups stored on our server in unique folders per-website
-	public $webp = false; // Enable creation of a .webp image alongside the optimized image, only if smaller.
-	public $webp_force = false; // Force keeping .webp images even if they are bigger.
+	public $jpg_level   = 20; // Defaults to regular lossy, 10 is lossless, 30 is highest compression.
+	public $png_level   = 10; // Defaults to lossless, 20 is lossy, 30 is highest compression.
+	public $gif_level   = 10; // Lossless only, set to zero to disable.
+	public $pdf_level   = 10; // Defaults to lossless, 20 is lossy
+
+	public $backup        = false; // You must collect and store the backup_hash attribute after optimization to retrieve the files later.
+	public $backup_domain = ''; // set this to have backups stored on our server in unique folders per-website.
+
+	public $webp         = false; // Enable creation of a .webp image alongside the optimized image, only if smaller.
+	public $webp_force   = false; // Force keeping .webp images even if they are bigger.
 	public $webp_quality = false; // Defaults to 82.
 
 	// conversion options
-	public $jpg_to_png = false; // Enable JPG to PNG conversion, PNG image saved only if smaller.
-	public $png_to_jpg = false; // Enable PNG to JPG conversion, JPG image saved only if smaller.
-	public $gif_to_png = false; // Enable GIF to PNG conversion, PNG image saved only if smaller.
+	public $jpg_to_png       = false; // Enable JPG to PNG conversion, PNG image saved only if smaller.
+	public $png_to_jpg       = false; // Enable PNG to JPG conversion, JPG image saved only if smaller.
+	public $gif_to_png       = false; // Enable GIF to PNG conversion, PNG image saved only if smaller.
 	public $delete_originals = true; // Deletes the original image after successful, does not apply unless conversion options are enabled, as regular optimization is done in-place.
-	public $jpg_background = ''; // Set to something like #ffffff (with # symbol) for a white fill during PNG to JPG. If left empty, no conversion will be attempted on transparent PNG images.
-	public $jpg_quality = 82; // only for conversion, not for regular compression/optimization.
+	public $jpg_background   = ''; // Set to something like #ffffff (with # symbol) for a white fill during PNG to JPG. If left empty, no conversion will be attempted on transparent PNG images.
+	public $jpg_quality      = 82; // only for conversion, not for regular compression/optimization.
 
 	// status and results - look but don't touch (modify)
-	public $converted = false; // If you enable conversion options (see above), this will indicate a successful conversion after running optimize();
-	public $savings = 0; // This will store the bytes saved during optimization.
+	public $converted   = false; // If you enable conversion options (see above), this will indicate a successful conversion after running optimize();
+	public $savings     = 0; // This will store the bytes saved during optimization.
 	public $backup_hash = ''; // A unique string for the image file last optimized, store this somewhere if you want to be able to retrieve the original later.
-	public $debug = false; // Enables logging to debug.log file in lib folder.
-	protected $debug_log = ''; // The current debugging contents.
-	protected $last_error = ''; // use get_error() to inspect.
-	protected $api_key = ''; // Pass to constructor to define.
-	protected $exceeded = false; // You've run out of credits, go get some more :)
+	public $debug       = false; // Enables logging to debug.log file in lib folder.
 
-	function __construct( $api_key = '' ) {
+	protected $debug_log  = ''; // The current debugging contents.
+	protected $last_error = ''; // use get_error() to inspect.
+	protected $api_key    = ''; // Pass to constructor to define.
+	protected $exceeded   = false; // You've run out of credits, go get some more :)
+
+	public function __construct( $api_key = '' ) {
 		if ( empty( $api_key ) ) {
 			throw new Exception( 'missing API key' );
 			return;
@@ -70,18 +68,18 @@ class EWWWIO {
 		}
 	}
 
-	function debug_message( $message ) {
+	public function debug_message( $message ) {
 		if ( $this->debug ) {
-			$message     = str_replace( "\n\n\n", "\n", $message );
-			$message     = str_replace( "\n\n", "\n", $message );
+			$message          = str_replace( "\n\n\n", "\n", $message );
+			$message          = str_replace( "\n\n", "\n", $message );
 			$this->debug_log .= "$message\n";
 		}
 	}
 
 	// used to output debug messages to a logfile in the plugin folder in cases where output to the screen is a bad idea
-	function debug_log() {
+	public function debug_log() {
 		if ( ! empty( $this->debug_log ) && $this->debug ) {
-			$timestamp = date( 'y-m-d h:i:s.u' ) . "\n";
+			$timestamp = gmdate( 'y-m-d h:i:s.u' ) . "\n";
 			if ( ! file_exists( EWWWIO_PATH . 'debug.log' ) ) {
 				touch( EWWWIO_PATH . 'debug.log' );
 			}
@@ -97,7 +95,7 @@ class EWWWIO {
 	 * @param string $path The absolute path to the file.
 	 * @return bool|string A valid mime-type or false.
 	 */
-	function mimetype( $path ) {
+	public function mimetype( $path ) {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		$this->debug_message( "testing mimetype: $path" );
 		$type = false;
@@ -143,7 +141,7 @@ class EWWWIO {
 
 	// test mimetype based on file extension instead of file contents
 	// only use for places where speed outweighs accuracy
-	function quick_mimetype( $path ) {
+	public function quick_mimetype( $path ) {
 		$pathextension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 		switch ( $pathextension ) {
 			case 'jpg':
@@ -167,7 +165,7 @@ class EWWWIO {
 	 * @param string $filename Name of the GIF to test for animation.
 	 * @return bool True if animation found.
 	 */
-	function is_animated( $filename ) {
+	public function is_animated( $filename ) {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		if ( ! is_file( $filename ) ) {
 			return false;
@@ -195,7 +193,7 @@ class EWWWIO {
 	 * @param string $background The hexadecimal value entered by the user.
 	 * @return string The background color sanitized.
 	 */
-	function sanitize_background( $background ) {
+	public function sanitize_background( $background ) {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		if ( empty( $background ) ) {
 			return '';
@@ -213,13 +211,13 @@ class EWWWIO {
 		}
 	}
 
-	function get_error() {
+	public function get_error() {
 		return $this->last_error;
 	}
 
 	// Basically just used to generate random strings.
-	function generate_password( $length = 12 ) {
-		$chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	public function generate_password( $length = 12 ) {
+		$chars    = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 		$password = '';
 		for ( $i = 0; $i < $length; $i++ ) {
 			$password .= substr( $chars, rand( 0, strlen( $chars ) - 1 ), 1 );
@@ -267,28 +265,28 @@ class EWWWIO {
 	/**
 	* Checks if a function is disabled or does not exist.
 	*
-	* @param string $function The name of a function to test.
+	* @param string $function_name The name of a function to test.
 	* @return bool True if the function is available, False if not.
 	*/
-	protected function function_exists( $function ) {
+	protected function function_exists( $function_name ) {
 		if ( function_exists( 'ini_get' ) ) {
-			$disabled = @ini_get( 'disable_functions' );
+			$disabled = @ini_get( 'disable_functions' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			$this->debug_message( "disable_functions: $disabled" );
 		}
 		if ( extension_loaded( 'suhosin' ) && function_exists( 'ini_get' ) ) {
-			$suhosin_disabled = @ini_get( 'suhosin.executor.func.blacklist' );
+			$suhosin_disabled = @ini_get( 'suhosin.executor.func.blacklist' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 			$this->debug_message( "suhosin_blacklist: $suhosin_disabled" );
 			if ( ! empty( $suhosin_disabled ) ) {
 				$suhosin_disabled = explode( ',', $suhosin_disabled );
 				$suhosin_disabled = array_map( 'trim', $suhosin_disabled );
 				$suhosin_disabled = array_map( 'strtolower', $suhosin_disabled );
-				if ( function_exists( $function ) && ! in_array( $function, $suhosin_disabled ) ) {
+				if ( function_exists( $function_name ) && ! in_array( trim( $function_name, '\\' ), $suhosin_disabled, true ) ) {
 					return true;
 				}
 				return false;
 			}
 		}
-		return function_exists( $function );
+		return function_exists( $function_name );
 	}
 
 	// check filesize, and prevent errors by ensuring file exists, and that the cache has been cleared
@@ -315,7 +313,7 @@ class EWWWIO {
 	 *     @type int|string The iterator used for uniqueness.
 	 * }
 	 */
-	function unique_filename( $file, $fileext ) {
+	public function unique_filename( $file, $fileext ) {
 		// Strip the file extension.
 		$filename = preg_replace( '/\.\w+$/', '', $file );
 		if ( ! is_file( $filename . $fileext ) ) {
@@ -329,7 +327,7 @@ class EWWWIO {
 		// While a file exists with the current increment.
 		while ( file_exists( $filename . $suffix . $fileext ) ) {
 			// Increment the increment...
-			$filenum++;
+			++$filenum;
 			$suffix = '-' . $filenum;
 		}
 		// All done, let's reconstruct the filename.
@@ -342,15 +340,14 @@ class EWWWIO {
 	 * @param string $file Full absolute path to the image file.
 	 * @return string The filename or false on error.
 	 */
-	function optimize( $file ) {
+	public function optimize( $file ) {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		session_write_close();
 		// Initialize the original filename.
-		$original = $file;
-		// TODO: maybe we don't need this?
-		$result = '';
-		$this->converted = false;
-		$this->savings = 0;
+		$original         = $file;
+		$result           = '';
+		$this->converted  = false;
+		$this->savings    = 0;
 		$this->last_error = '';
 		// Check that the file exists.
 		if ( false === is_file( $file ) ) {
@@ -401,7 +398,7 @@ class EWWWIO {
 		// get the original image size
 		$orig_size = $this->filesize( $file );
 		$this->debug_message( "original filesize: $orig_size" );
-		$new_size = 0;
+		$new_size          = 0;
 		$this->backup_hash = '';
 		// set the optimization process to OFF
 		$optimize = false;
@@ -411,7 +408,7 @@ class EWWWIO {
 		switch ( $type ) {
 			case 'image/jpeg':
 				$png_size = 0;
-				// if jpg2png conversion is enabled, and this image is in the wordpress media library
+				// if jpg2png conversion is enabled.
 				if ( $this->jpg_to_png ) {
 					// get a unique filename for the png image
 					list( $pngfile, $filenum ) = $this->unique_filename( $file, '.png' );
@@ -453,7 +450,7 @@ class EWWWIO {
 							// delete the original JPG
 							unlink( $original );
 						}
-						$this->webp_create( $file, $new_size, 'image/jpeg');
+						$this->webp_create( $file, $new_size, 'image/jpeg' );
 					} else {
 						$this->webp_create( $file, $new_size, $type );
 					}
@@ -462,9 +459,9 @@ class EWWWIO {
 				}
 				break;
 			case 'image/gif':
-				// if gif2png is turned on, and the image is in the wordpress media library
+				// If gif2png is turned on.
 				if ( $this->gif_to_png && ! $this->is_animated( $file ) ) {
-					// construct the filename for the new PNG
+					// Construct the filename for the new PNG.
 					list( $pngfile, $filenum ) = $this->unique_filename( $file, '.png' );
 				} else {
 					// turn conversion OFF
@@ -494,16 +491,16 @@ class EWWWIO {
 				return false;
 		} // End switch();
 		// If the cloud api license limit has been exceeded.
-		if ( $result == 'exceeded' ) {
+		if ( 'exceeded' === $result ) {
 			$this->last_error = 'License exceeded';
 			$this->debug_log();
 			return false;
 		}
 		if ( ! empty( $new_size ) ) {
 			// Set correct file permissions.
-			$stat = stat( dirname( $file ) );
+			$stat  = stat( dirname( $file ) );
 			$perms = $stat['mode'] & 0000666; //same permissions as parent folder, strip off the executable bits
-			@chmod( $file, $perms );
+			chmod( $file, $perms );
 			$this->savings = $orig_size - $new_size;
 			$this->debug_log();
 			return $file;
@@ -521,7 +518,7 @@ class EWWWIO {
 	 * @param string $type The mime-type of the incoming file.
 	 * @param bool   $recreate True to keep the .webp image even if it is larger than the JPG/PNG.
 	 */
-	function webp_create( $file, $orig_size, $type ) {
+	public function webp_create( $file, $orig_size, $type ) {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		$webpfile = $file . '.webp';
 		if ( ! $this->webp ) {
@@ -538,19 +535,19 @@ class EWWWIO {
 			unlink( $webpfile );
 		} elseif ( is_file( $webpfile ) ) {
 			// Set correct file permissions.
-			$stat = stat( dirname( $webpfile ) );
+			$stat  = stat( dirname( $webpfile ) );
 			$perms = $stat['mode'] & 0000666; // same permissions as parent folder, strip off the executable bits.
 			chmod( $webpfile, $perms );
 		}
 	}
 
 	// adds our version to the useragent for http requests
-	function cloud_useragent() {
+	public function cloud_useragent() {
 		return 'EWWWIO PHP/' . EWWW_IMAGE_OPTIMIZER_VERSION;
 	}
 
 	// submits the api key for verification
-	function verify_key() {
+	public function verify_key() {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		if ( empty( $this->api_key ) ) {
 			$this->debug_message( 'no api key' );
@@ -564,7 +561,7 @@ class EWWWIO {
 		$result = $this->post_key( 'optimize.exactlywww.com', 'https', $this->api_key );
 		if ( empty( $result->success ) ) {
 			$result->throw_for_status( false );
-			$this->debug_message( "verification failed" );
+			$this->debug_message( 'verification failed' );
 		} elseif ( ! empty( $result->body ) && preg_match( '/(great|exceeded)/', $result->body ) ) {
 			$verified = $result->body;
 			if ( preg_match( '/exceeded/', $verified ) ) {
@@ -573,12 +570,12 @@ class EWWWIO {
 			if ( false !== strpos( $result->body, 'expired' ) ) {
 				$this->api_key = '';
 			}
-			$this->debug_message( "verification success" );
+			$this->debug_message( 'verification success' );
 		} else {
 			if ( false !== strpos( $result->body, 'invalid' ) ) {
 				$this->api_key = '';
 			}
-			$this->debug_message( "verification failed" );
+			$this->debug_message( 'verification failed' );
 			if ( $this->function_exists( 'print_r' ) ) {
 				$this->debug_message( print_r( $result, true ) );
 			}
@@ -592,32 +589,52 @@ class EWWWIO {
 		return $verified;
 	}
 
-	function post_key( $ip, $transport, $key ) {
+	public function post_key( $ip, $transport, $key ) {
 		$useragent = $this->cloud_useragent();
-		$result = Requests::post( "$transport://$ip/verify/", array(), array( 'api_key' => $key ), array( 'timeout' => 5, 'useragent' => $useragent ) );
+		$result    = Requests::post(
+			"$transport://$ip/verify/",
+			array(),
+			array(
+				'api_key' => $key,
+			),
+			array(
+				'timeout'   => 5,
+				'useragent' => $useragent,
+			)
+		);
 		return $result;
 	}
 
 	// checks the provided api key for quota information
-	function quota() {
+	public function quota() {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
-		$url = "https://optimize.exactlywww.com/quota/";
-		$result = Requests::post( $url, array(), array( 'api_key' => $this->api_key ), array( 'timeout' => 5, 'useragent' => $this->cloud_useragent() ) );
+		$url    = 'https://optimize.exactlywww.com/quota/';
+		$result = Requests::post(
+			$url,
+			array(),
+			array(
+				'api_key' => $this->api_key,
+			),
+			array(
+				'timeout'   => 5,
+				'useragent' => $this->cloud_useragent(),
+			)
+		);
 		if ( ! $result->success ) {
 			$result->throw_for_status( false );
 			$this->debug_message( 'quota request failed: ' . $result->status_code );
 			return '';
 		} elseif ( ! empty( $result->body ) ) {
-			$this->debug_message( "quota data retrieved: " . $result->body );
+			$this->debug_message( 'quota data retrieved: ' . $result->body );
 			$quota = explode( ' ', $result->body );
-			if ( $quota[0] == 0 && $quota[1] > 0 ) {
+			if ( 0 === (int) $quota[0] && $quota[1] > 0 ) {
 				return sprintf( 'optimized %1$d images, usage will reset in %2$d days.', $quota[1], $quota[2] );
-			} elseif ( $quota[0] == 0 && $quota[1] < 0 ) {
+			} elseif ( 0 === (int) $quota[0] && $quota[1] < 0 ) {
 				return sprintf( '%1$d image credits remaining.', abs( $quota[1] ) );
 			} elseif ( $quota[0] > 0 && $quota[1] < 0 ) {
 				$real_quota = $quota[0] - $quota[1];
 				return sprintf( '%1$d image credits remaining.', $real_quota );
-			} elseif ( 0 == $quota[0] && 0 == $quota[1] && 0 == $quota[2] ) {
+			} elseif ( 0 === (int) $quota[0] && 0 === (int) $quota[1] && 0 === (int) $quota[2] ) {
 				return 'no credits remaining, please purchase more.';
 			} else {
 				return sprintf( 'used %1$d of %2$d, usage will reset in %3$d days.', $quota[1], $quota[0], $quota[2] );
@@ -650,39 +667,39 @@ class EWWWIO {
 	 *     @type int File size of the (new) image.
 	 * }
 	 */
-	function cloud_optimizer( $file, $type, $convert = false, $newfile = null, $newtype = null, $jpg_fill = '', $jpg_quality = 82 ) {
+	public function cloud_optimizer( $file, $type, $convert = false, $newfile = null, $newtype = null, $jpg_fill = '', $jpg_quality = 82 ) {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		if ( $this->exceeded || empty( $this->api_key ) ) {
 			return array( $file, false, 'exceeded', 0 );
 		}
 		if ( ! $this->remove_meta ) {
 			$metadata = 1;
-	        } else {
-	                $metadata = 0;
-	        }
+		} else {
+			$metadata = 0;
+		}
 		if ( empty( $convert ) ) {
 			$convert = 0;
 		} else {
 			$convert = 1;
 		}
 		$lossy_fast = 0;
-		if ( $type == 'image/png' && $this->png_level >= 20 ) {
+		if ( 'image/png' === $type && $this->png_level >= 20 ) {
 			$lossy = 1;
-			if ( $this->png_level == 20 ) {
+			if ( 20 === (int) $this->png_level ) {
 				$lossy_fast = 1;
 			}
-		} elseif ( $type == 'image/jpeg' && $this->jpg_level >= 20 ) {
+		} elseif ( 'image/jpeg' === $type && $this->jpg_level >= 20 ) {
 			$lossy = 1;
-			if ( $this->jpg_level == 20 ) {
+			if ( 20 === (int) $this->jpg_level ) {
 				$lossy_fast = 1;
 			}
-		} elseif ( $type == 'application/pdf' && $this->pdf_level == 20 ) {
+		} elseif ( 'application/pdf' === $type && 20 === (int) $this->pdf_level ) {
 			$lossy = 1;
 		} else {
 			$lossy = 0;
 		}
-		if ( 'image/webp' == $newtype ) {
-			$webp = 1;
+		if ( 'image/webp' === $newtype ) {
+			$webp        = 1;
 			$jpg_quality = $this->webp_quality ? $this->webp_quality : 82;
 		} else {
 			$webp = 0;
@@ -690,8 +707,8 @@ class EWWWIO {
 		if ( ! $webp && $this->backup ) {
 			$this->backup_hash = uniqid() . hash( 'sha256', $file );
 		}
-		$domain = $this->backup_domain;
-		$jpg_fill = $this->sanitize_background( $jpg_fill );
+		$domain      = $this->backup_domain;
+		$jpg_fill    = $this->sanitize_background( $jpg_fill );
 		$jpg_quality = (int) $jpg_quality;
 		$this->debug_message( "file: $file " );
 		$this->debug_message( "type: $type" );
@@ -701,42 +718,42 @@ class EWWWIO {
 		$this->debug_message( "webp: $webp" );
 		$this->debug_message( "jpg fill: $jpg_fill" );
 		$this->debug_message( "jpg quality: $jpg_quality" );
-		$url = "https://optimize.exactlywww.com/v2/";
+		$url      = 'https://optimize.exactlywww.com/v2/';
 		$boundary = $this->generate_password( 24 );
 
-		$useragent = $this->cloud_useragent();
-		$headers = array(
-	        	'content-type' => 'multipart/form-data; boundary=' . $boundary,
-			);
+		$useragent   = $this->cloud_useragent();
+		$headers     = array(
+			'content-type' => 'multipart/form-data; boundary=' . $boundary,
+		);
 		$post_fields = array(
-			'filename' => $file,
-			'convert' => $convert,
-			'metadata' => $metadata,
-			'api_key' => $this->api_key,
-			'jpg_fill' => $jpg_fill,
-			'quality' => $jpg_quality,
-			'lossy' => $lossy,
+			'filename'   => $file,
+			'convert'    => $convert,
+			'metadata'   => $metadata,
+			'api_key'    => $this->api_key,
+			'jpg_fill'   => $jpg_fill,
+			'quality'    => $jpg_quality,
+			'lossy'      => $lossy,
 			'lossy_fast' => $lossy_fast,
-			'webp' => $webp,
-			'backup' => $this->backup_hash,
-			'domain' => $domain,
+			'webp'       => $webp,
+			'backup'     => $this->backup_hash,
+			'domain'     => $domain,
 		);
 
 		$payload = '';
-		foreach ($post_fields as $name => $value) {
-	        	$payload .= '--' . $boundary;
-		        $payload .= "\r\n";
-		        $payload .= 'Content-Disposition: form-data; name="' . $name .'"' . "\r\n\r\n";
-		        $payload .= $value;
-		        $payload .= "\r\n";
+		foreach ( $post_fields as $name => $value ) {
+			$payload .= '--' . $boundary;
+			$payload .= "\r\n";
+			$payload .= 'Content-Disposition: form-data; name="' . $name . '"' . "\r\n\r\n";
+			$payload .= $value;
+			$payload .= "\r\n";
 		}
 
 		$payload .= '--' . $boundary;
 		$payload .= "\r\n";
-		$payload .= 'Content-Disposition: form-data; name="file"; filename="' . basename($file) . '"' . "\r\n";
+		$payload .= 'Content-Disposition: form-data; name="file"; filename="' . basename( $file ) . '"' . "\r\n";
 		$payload .= 'Content-Type: ' . $type . "\r\n";
 		$payload .= "\r\n";
-		$payload .= file_get_contents($file);
+		$payload .= file_get_contents( $file );
 		$payload .= "\r\n";
 		$payload .= '--' . $boundary;
 		$payload .= 'Content-Disposition: form-data; name="submitHandler"' . "\r\n";
@@ -749,7 +766,7 @@ class EWWWIO {
 			$headers,
 			$payload,
 			array(
-				'timeout' => 300,
+				'timeout'   => 300,
 				'useragent' => $useragent,
 			)
 		);
@@ -758,30 +775,30 @@ class EWWWIO {
 			$this->debug_message( 'optimize failed, see exception' );
 			return array( $file, false, 'cloud optimize failed', 0 );
 		} else {
-			$tempfile = $file . ".tmp";
+			$tempfile = $file . '.tmp';
 			file_put_contents( $tempfile, $response->body );
 			$orig_size = filesize( $file );
-			$newsize = $orig_size;
-			$msg = '';
+			$newsize   = $orig_size;
+			$msg       = '';
 			if ( 100 > strlen( $response->body ) && strpos( $response->body, 'invalid' ) ) {
 				$this->debug_message( 'License invalid' );
 				$this->api_key = '';
 			} elseif ( 100 > strlen( $response->body ) && strpos( $response->body, 'exceeded' ) ) {
 				$this->debug_message( 'License Exceeded' );
 				$this->exceeded = true;
-				$msg = 'exceeded';
+				$msg            = 'exceeded';
 				unlink( $tempfile );
-			} elseif ( $this->mimetype( $tempfile, 'i' ) == $type ) {
+			} elseif ( $this->mimetype( $tempfile, 'i' ) === $type ) {
 				$newsize = filesize( $tempfile );
 				$this->debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
 				rename( $tempfile, $file );
-			} elseif ( $this->mimetype( $tempfile, 'i' ) == 'image/webp' ) {
+			} elseif ( $this->mimetype( $tempfile, 'i' ) === 'image/webp' ) {
 				$newsize = filesize( $tempfile );
 				$this->debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
 				rename( $tempfile, $newfile );
-			} elseif ( $this->mimetype( $tempfile, 'i' ) == $newtype ) {
+			} elseif ( $this->mimetype( $tempfile, 'i' ) === $newtype ) {
 				$this->converted = true;
-				$newsize = filesize( $tempfile );
+				$newsize         = filesize( $tempfile );
 				$this->debug_message( "cloud results: $newsize (new) vs. $orig_size (original)" );
 				rename( $tempfile, $newfile );
 				$file = $newfile;
