@@ -44,8 +44,11 @@ $ewwwio->webp_force = true; // Always keep the generated WebP, even if it is a l
 ## Changelog
 
 ### 1.1
+* added: SVG optimization
 * updated to Requests 2.x
 * updated code formatting
+* fixed cloud_optimizer() return value handling for PDF files
+* fixed temp files being left behind when key is invalid
 
 ### 1.0
 * fixed conversion bugs, fully tested and marking stable
