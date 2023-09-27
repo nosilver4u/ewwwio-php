@@ -10,9 +10,8 @@ if ( ! defined( 'EWWWIO_PATH' ) ) {
 
 define( 'EWWW_IMAGE_OPTIMIZER_VERSION', 1.1 );
 
-// TODO: Update the Requests lib  to 2.0
-require_once EWWWIO_PATH . 'vendor/Requests/library/Requests.php';
-Requests::register_autoloader();
+require_once __DIR__ . '/vendor/rmccue/requests/src/Autoload.php';
+WpOrg\Requests\Autoload::register();
 
 class EWWWIO {
 
@@ -591,7 +590,7 @@ class EWWWIO {
 
 	public function post_key( $ip, $transport, $key ) {
 		$useragent = $this->cloud_useragent();
-		$result    = Requests::post(
+		$result    = WpOrg\Requests\Requests::post(
 			"$transport://$ip/verify/",
 			array(),
 			array(
@@ -609,7 +608,7 @@ class EWWWIO {
 	public function quota() {
 		$this->debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 		$url    = 'https://optimize.exactlywww.com/quota/';
-		$result = Requests::post(
+		$result = WpOrg\Requests\Requests::post(
 			$url,
 			array(),
 			array(
@@ -761,7 +760,7 @@ class EWWWIO {
 		$payload .= "Upload\r\n";
 		$payload .= '--' . $boundary . '--';
 
-		$response = Requests::post(
+		$response = WpOrg\Requests\Requests::post(
 			$url,
 			$headers,
 			$payload,

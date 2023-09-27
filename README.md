@@ -2,7 +2,7 @@
 
 License: GPLv3
 
-This is a PHP library that you can use to integrate with the [EWWW Image Optimizer API](https://ewww.io/). The API can be used to reduce image filesize using lossless and lossy methods as well as image format conversion.
+This is a PHP library that you can use to integrate with the EWWW Image Optimizer [Compress API](https://docs.ewww.io/article/114-compress-api-reference). The Compress API can be used to reduce image filesize using lossless and lossy methods as well as image format conversion.
 
 By default, EWWW Image Optimizer uses lossy JPG and lossless PNG optimization techniques, The lossy optimization for JPG and PNG files uses sophisticated algorithms to minimize perceptual quality loss, which is vastly different than setting a static quality/compression level.
 
@@ -11,7 +11,8 @@ By default, EWWW Image Optimizer uses lossy JPG and lossless PNG optimization te
 Can generate WebP versions of your images (will not remove originals, since you'll need both versions to support all browsers), and enables you to serve even smaller images to supported browsers.
 
 ## Usage
-No Composer support yet, the library bundles it's own copy of Requests by rmccue and friends, and shouldn't be too picky about the version.
+No Composer support yet, the library bundles it's own copy of Requests by rmccue and friends, and is known to be compatible with version 2.0.8.
+
 Include the library, and start rolling:
 ```php
 include_once( 'ewwwio-php/ewwwio.php' );
@@ -39,14 +40,12 @@ $ewwwio->webp = true; // Generates a .webp image alongside the optimized image i
 $ewwwio->webp_force = true; // Always keep the generated WebP, even if it is a little bigger.
 ```
 
-## Frequently Asked Questions
-
-### Can I resize my images with this library?
-
-Not yet, but maybe in the future. [The WordPress plugin can though](https://ewww.io).
-
 
 ## Changelog
+
+### 1.1
+* updated to Requests 2.x
+* updated code formatting
 
 ### 1.0
 * fixed conversion bugs, fully tested and marking stable
