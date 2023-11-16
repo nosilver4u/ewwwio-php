@@ -697,7 +697,7 @@ class EWWWIO {
 	 * @param string $newfile Optional. Filename to be used if image is converted. Default null.
 	 * @param string $newtype Optional. Mimetype expected if image is converted. Default null.
 	 * @param bool   $fullsize Optional. True if this is an original upload. Default false.
-	 * @param array  $jpg_fill Optional. Fill color for PNG to JPG conversion in hex format.
+	 * @param string $jpg_fill Optional. Fill color for PNG to JPG conversion in hex format.
 	 * @param int    $jpg_quality Optional. JPG quality level. Default null. Accepts 1-100.
 	 * @return array {
 	 *     Information about the cloud optimization.

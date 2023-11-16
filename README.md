@@ -43,6 +43,9 @@ $ewwwio->webp_force = true; // Always keep the generated WebP, even if it is a l
 
 ## Changelog
 
+### 1.2
+* update to Requests 2.0.9
+
 ### 1.1
 * added: SVG optimization
 * updated to Requests 2.x
